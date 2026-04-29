@@ -1,0 +1,20 @@
+{
+  "name": "game-development-framework",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tech-agnostic game development framework with automated data/packet/ORM sync",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "gen:data":    "node tools/gen-data.js",
+    "gen:packets": "node tools/gen-packets.js",
+    "gen:orm":     "node tools/gen-orm.js",
+    "gen:all":     "npm run gen:data && npm run gen:packets && npm run gen:orm"
+  },
+  "optionalDependencies": {
+    "pg":              "^8.0.0",
+    "mysql2":          "^3.0.0",
+    "better-sqlite3":  "^9.0.0"
+  }
+}

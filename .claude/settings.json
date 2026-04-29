@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git pull*)",
+      "Bash(git add*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(gh issue create*)",
+      "Bash(gh issue list*)",
+      "Bash(gh pr create*)",
+      "Bash(tools/gen-all.bat*)",
+      "Bash(tools/gen-all.sh*)"
+    ]
+  }
+}

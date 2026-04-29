@@ -1,0 +1,8 @@
+id,name,itemType,attackPower,defensePower,price,clientDisplayName,serverDropRate
+CS,CS,CS,CS,CS,S,C,S
+int32,string,ItemType,int32,int32,int32,string,float
+PK,NN,NN,,,,NN,NN
+1001,iron_sword,WEAPON,15,0,100,Iron Sword,0.05
+1002,leather_armor,ARMOR,0,10,80,Leather Armor,0.08
+1003,health_potion,CONSUMABLE,0,0,50,Health Potion,0.20
+1004,magic_staff,WEAPON,25,0,200,Magic Staff,0.03

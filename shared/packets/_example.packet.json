@@ -1,0 +1,41 @@
+{
+  "_comment": "EXAMPLE FILE — prefixed with _ so gen tools skip this file. Copy and rename to [domain].packet.json",
+  "namespace": "player",
+  "packets": [
+    {
+      "id": 1001,
+      "name": "PlayerMoveRequest",
+      "direction": "c2s",
+      "description": "Client requests a position update",
+      "fields": [
+        { "name": "x",         "type": "float" },
+        { "name": "y",         "type": "float" },
+        { "name": "timestamp", "type": "int64" }
+      ]
+    },
+    {
+      "id": 1002,
+      "name": "PlayerMoveResponse",
+      "direction": "s2c",
+      "description": "Server broadcasts confirmed position",
+      "fields": [
+        { "name": "playerId",  "type": "string" },
+        { "name": "x",         "type": "float" },
+        { "name": "y",         "type": "float" },
+        { "name": "timestamp", "type": "int64" }
+      ]
+    },
+    {
+      "id": 1003,
+      "name": "PlayerStatusUpdate",
+      "direction": "s2c",
+      "description": "Server pushes player stat changes",
+      "fields": [
+        { "name": "playerId",     "type": "string" },
+        { "name": "hp",           "type": "int32" },
+        { "name": "mp",           "type": "int32" },
+        { "name": "statusEffect", "type": "string", "optional": true }
+      ]
+    }
+  ]
+}
