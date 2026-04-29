@@ -19,6 +19,9 @@ Read `.env` and verify the following are set. If any are missing, STOP and notif
 
 Example result: `[서버/전상혁] #87 플레이어 이동 패킷 핸들러 추가`
 
+## Git Command Rule
+Never use `cd {path} && git ...`. Always use `git -C {repo_path} <subcommand>` to avoid permission prompts.
+
 ## Steps
 1. Read `GITHUB_DEFAULT_ASSIGNEE` from `.env`.
 2. Parse `{도메인}` and `{이슈번호}` from $ARGUMENTS.
@@ -30,6 +33,5 @@ Example result: `[서버/전상혁] #87 플레이어 이동 패킷 핸들러 추
    a. Stage only the files belonging to that work unit.
       Never stage `.env` or files matching `.gitignore`.
    b. Draft the commit message following the convention above.
-   c. Show the staged files and draft message — ask for confirmation before committing.
-   d. Run `git commit -m "[message]"` — ensure encoding is UTF-8 for Korean characters.
+   c. Run `git commit -m "[message]"` immediately — no confirmation needed.
 6. Report each commit hash and message after completion.

@@ -52,11 +52,15 @@ gh issue create \
 Ensure the title is passed with proper UTF-8 encoding for Korean characters.
 
 ### 7. Add the issue to the project and set fields
-After creation, get the issue URL and node ID, then:
+**API constraint:** GitHub Projects v2 always requires 2 separate steps — there is no single-call alternative.
+- Step A returns the project `item.id` required by Step B; these cannot be merged.
+
+Step A — add to project (returns item.id):
 ```bash
 gh project item-add {project_number} --owner {owner} --url {issue_url}
 ```
-Then set each field via `gh project item-edit`:
+
+Step B — set each field via `gh project item-edit` (requires item.id from Step A):
 - Assignee: already set at creation
 - Priority: set to autonomously determined value
 - Size: set to autonomously determined value

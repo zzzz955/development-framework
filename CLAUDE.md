@@ -30,6 +30,13 @@ FILE (packet): `[domain].packet.json`           e.g. `player.packet.json`
 FILE (db):     `schema.json` (single file)
 FILE (gen):    auto-named from source filename
 
+## Output
+- No narration before tool calls — execute immediately, no "Let me read X" preamble
+- Silent on success path — only surface errors or blockers mid-execution
+- Autonomous decisions (Priority, Size, etc.): state value only, omit reasoning
+- Final report: compact table or key-value pairs, no prose
+- No trailing summary — do not recap what was just completed
+
 ## Serena
 SKIP: `*/generated/` — always navigate source files
 ENTRY: `shared/packets/` → protocol source | `shared/datas/` → data source

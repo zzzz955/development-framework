@@ -14,6 +14,9 @@ Read `.env` and verify the following are set. If any are missing, STOP and notif
 ```
 - `{작업자}`: value of `GITHUB_DEFAULT_ASSIGNEE` from `.env`
 
+## Git Command Rule
+Never use `cd {path} && git ...`. Always use `git -C {repo_path} <subcommand>` to avoid permission prompts.
+
 ## Steps
 1. Read `GITHUB_DEFAULT_ASSIGNEE` from `.env`.
 2. Parse `{도메인}` and `{이슈번호}` from $ARGUMENTS. If malformed, ask the user to clarify.
@@ -22,9 +25,9 @@ Read `.env` and verify the following are set. If any are missing, STOP and notif
 5. For each commit:
    a. Stage only the relevant files. Never stage `.env` or `.gitignore`-matched files.
    b. Draft the commit message following the convention above.
-   c. Show staged files and draft message — ask for confirmation before committing.
-   d. Run `git commit -m "[message]"` with UTF-8 encoding for Korean characters.
+   c. Run `git commit -m "[message]"` immediately — no confirmation needed.
 6. After all commits: run `git push`.
+   - If push is rejected (non-fast-forward conflict): STOP and notify the user. Do NOT force push.
 7. Report each commit hash and the push result.
 
 Safety: Never use `--force` push. Never commit `.env`.
