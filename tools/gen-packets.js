@@ -1,15 +1,19 @@
 'use strict';
 /**
- * gen-packets: shared/packets/*.packet.json → {client,server}/generated/packets/*
+ * gen-packets: shared/packets/*.packet.json → generated output
  *
- * Packet definition schema:
+ * mode=protobuf  → generated/proto/{namespace}.proto          (run protoc separately)
+ * mode=rest      → {client,server}/generated/packets/{namespace}.packets.{cs|hpp}
+ *
+ * Packet JSON schema:
  * {
  *   "namespace": "player",
  *   "packets": [
  *     {
- *       "id": 1001,
  *       "name": "PlayerMoveRequest",
- *       "direction": "c2s",   // c2s | s2c | both
+ *       "id": 1001,          // protobuf mode: required. rest mode: ignored.
+ *       "direction": "c2s",  // protobuf mode: required (c2s|s2c|both). rest mode: ignored.
+ *       "description": "optional",
  *       "fields": [
  *         { "name": "x", "type": "float", "optional": false }
  *       ]
@@ -40,13 +44,42 @@ function isValidType(t) {
   return false;
 }
 
-// ── Validation ────────────────────────────────────────────────────────────────
-function validateDefinition(def, filePath) {
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function toSnakeCase(s) {
+  return s.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+}
+
+// ── Field validation (shared across modes) ────────────────────────────────────
+function validateFields(pkt, relPath, errors) {
+  if (!Array.isArray(pkt.fields)) {
+    errors.push({ file: relPath, loc: `Packet "${pkt.name}"`, msg: '"fields" must be an array' });
+    return;
+  }
+  const seenFields = new Set();
+  for (const field of pkt.fields) {
+    const floc = `Packet "${pkt.name}", field "${field.name ?? '(unnamed)'}"`;
+    if (!field.name) {
+      errors.push({ file: relPath, loc: floc, msg: 'Missing field name' });
+    }
+    if (seenFields.has(field.name)) {
+      errors.push({ file: relPath, loc: floc, msg: `Duplicate field name "${field.name}"` });
+    }
+    seenFields.add(field.name);
+    if (!isValidType(field.type)) {
+      errors.push({ file: relPath, loc: floc,
+        msg: `Invalid type "${field.type}". Valid: int8~64, uint8~64, float, double, bool, string, string(N), EnumName` });
+    }
+  }
+}
+
+// ── Validation: protobuf mode (id + direction required) ───────────────────────
+function validateProtobuf(def, filePath) {
   const relPath = path.relative(cfg.root, filePath);
   const errors  = [];
 
   if (!def.namespace || typeof def.namespace !== 'string') {
-    errors.push({ file: relPath, loc: 'root', msg: 'Missing or invalid "namespace" field' });
+    errors.push({ file: relPath, loc: 'root', msg: 'Missing or invalid "namespace"' });
   }
   if (!Array.isArray(def.packets) || def.packets.length === 0) {
     errors.push({ file: relPath, loc: 'root', msg: 'Missing or empty "packets" array' });
@@ -62,8 +95,8 @@ function validateDefinition(def, filePath) {
     if (!pkt.name || typeof pkt.name !== 'string') {
       errors.push({ file: relPath, loc, msg: 'Missing or invalid "name"' });
     }
-    if (pkt.id === undefined || typeof pkt.id !== 'number' || !Number.isInteger(pkt.id)) {
-      errors.push({ file: relPath, loc, msg: 'Missing or invalid "id" (must be integer)' });
+    if (pkt.id === undefined || !Number.isInteger(pkt.id)) {
+      errors.push({ file: relPath, loc, msg: '[protobuf] Missing or invalid "id" (must be integer)' });
     } else {
       if (seenIds.has(pkt.id)) {
         errors.push({ file: relPath, loc,
@@ -78,42 +111,93 @@ function validateDefinition(def, filePath) {
 
     if (!VALID_DIRECTIONS.has(pkt.direction)) {
       errors.push({ file: relPath, loc,
-        msg: `Invalid direction "${pkt.direction}" (expected c2s, s2c, or both)` });
+        msg: `[protobuf] Invalid direction "${pkt.direction}" (expected c2s, s2c, or both)` });
     }
 
-    if (!Array.isArray(pkt.fields)) {
-      errors.push({ file: relPath, loc, msg: '"fields" must be an array' });
-      continue;
-    }
-
-    const seenFields = new Set();
-    for (const field of pkt.fields) {
-      const floc = `${loc}, field "${field.name ?? '(unnamed)'}"`;
-      if (!field.name) errors.push({ file: relPath, loc: floc, msg: 'Missing field name' });
-      if (seenFields.has(field.name)) {
-        errors.push({ file: relPath, loc: floc, msg: `Duplicate field name "${field.name}"` });
-      }
-      seenFields.add(field.name);
-      if (!isValidType(field.type)) {
-        errors.push({ file: relPath, loc: floc,
-          msg: `Invalid type "${field.type}". Valid: int8~64, uint8~64, float, double, bool, string, string(N), EnumName` });
-      }
-    }
+    validateFields(pkt, relPath, errors);
   }
 
   return errors;
 }
 
-// ── Code generators ───────────────────────────────────────────────────────────
-function mapType(type, lang, typeMap) {
-  const override = typeMap[type];
-  if (override) return override;
-  // string(N) → string in all languages (length hint is for network layer)
-  if (/^string\(\d+\)$/.test(type)) return typeMap['string'] || type;
+// ── Validation: rest mode (id + direction ignored) ────────────────────────────
+function validateRest(def, filePath) {
+  const relPath = path.relative(cfg.root, filePath);
+  const errors  = [];
+
+  if (!def.namespace || typeof def.namespace !== 'string') {
+    errors.push({ file: relPath, loc: 'root', msg: 'Missing or invalid "namespace"' });
+  }
+  if (!Array.isArray(def.packets) || def.packets.length === 0) {
+    errors.push({ file: relPath, loc: 'root', msg: 'Missing or empty "packets" array' });
+    return errors;
+  }
+
+  const seenNames = new Set();
+  for (const pkt of def.packets) {
+    const loc = `Packet "${pkt.name ?? '(unnamed)'}"`;
+
+    if (!pkt.name || typeof pkt.name !== 'string') {
+      errors.push({ file: relPath, loc, msg: 'Missing or invalid "name"' });
+    }
+    if (seenNames.has(pkt.name)) {
+      errors.push({ file: relPath, loc, msg: `Duplicate packet name "${pkt.name}"` });
+    }
+    seenNames.add(pkt.name);
+
+    validateFields(pkt, relPath, errors);
+  }
+
+  return errors;
+}
+
+// ── Generator: protobuf → .proto ──────────────────────────────────────────────
+function mapTypeProto(type, typeMap) {
+  if (typeMap[type]) return typeMap[type];
+  if (/^string\(\d+\)$/.test(type)) return 'string';
   return type; // EnumName passthrough
 }
 
-function generateCSharp(def, namespace, typeMap, target) {
+function generateProto(def, typeMap) {
+  const lines = [
+    '// AUTO-GENERATED — DO NOT EDIT',
+    `// Source: shared/packets/${def.namespace}.packet.json`,
+    '// Run: npm run gen:packets',
+    '// Compile: protoc --csharp_out=... --cpp_out=... this file',
+    '',
+    'syntax = "proto3";',
+    '',
+    `package ${def.namespace};`,
+    '',
+  ];
+
+  for (const pkt of def.packets) {
+    const dirLabel = pkt.direction === 'c2s' ? 'client → server'
+                   : pkt.direction === 's2c' ? 'server → client'
+                   : 'bidirectional';
+    if (pkt.description) lines.push(`// ${pkt.description}`);
+    lines.push(`// [${dirLabel}]`);
+    lines.push(`message ${pkt.name} {`);
+    pkt.fields.forEach((f, i) => {
+      const protoType = mapTypeProto(f.type, typeMap);
+      const optional  = f.optional ? 'optional ' : '';
+      const snakeName = toSnakeCase(f.name);
+      lines.push(`  ${optional}${protoType} ${snakeName} = ${i + 1};`);
+    });
+    lines.push('}', '');
+  }
+
+  return lines.join('\n');
+}
+
+// ── Generator: rest → C# DTO ──────────────────────────────────────────────────
+function mapType(type, typeMap) {
+  if (typeMap[type]) return typeMap[type];
+  if (/^string\(\d+\)$/.test(type)) return typeMap['string'] || 'string';
+  return type; // EnumName passthrough
+}
+
+function generateCSharpDTO(def, namespace, typeMap) {
   const lines = [
     '// AUTO-GENERATED — DO NOT EDIT',
     `// Source: shared/packets/${def.namespace}.packet.json`,
@@ -124,40 +208,23 @@ function generateCSharp(def, namespace, typeMap, target) {
   ];
 
   for (const pkt of def.packets) {
+    if (pkt.description) lines.push(`    // ${pkt.description}`);
     lines.push(`    public class ${pkt.name}`);
     lines.push('    {');
     for (const f of pkt.fields) {
-      const t   = mapType(f.type, 'csharp', typeMap);
+      const t   = mapType(f.type, typeMap);
       const opt = f.optional ? '?' : '';
       lines.push(`        public ${t}${opt} ${capitalize(f.name)} { get; set; }`);
     }
     lines.push('    }', '');
   }
 
-  // PacketId enum
-  lines.push('    public static class PacketId', '    {');
-  for (const pkt of def.packets) {
-    lines.push(`        public const int ${pkt.name} = ${pkt.id};`);
-  }
-  lines.push('    }', '');
-
-  // Direction type aliases
-  const c2s = def.packets.filter(p => p.direction === 'c2s' || p.direction === 'both');
-  const s2c = def.packets.filter(p => p.direction === 's2c' || p.direction === 'both');
-
-  if (target === 'client') {
-    if (c2s.length) lines.push(`    // Client sends: ${c2s.map(p => p.name).join(', ')}`);
-    if (s2c.length) lines.push(`    // Client receives: ${s2c.map(p => p.name).join(', ')}`);
-  } else {
-    if (c2s.length) lines.push(`    // Server receives: ${c2s.map(p => p.name).join(', ')}`);
-    if (s2c.length) lines.push(`    // Server sends: ${s2c.map(p => p.name).join(', ')}`);
-  }
-
   lines.push('}');
   return lines.join('\n');
 }
 
-function generateCpp(def, typeMap, target) {
+// ── Generator: rest → C++ DTO ─────────────────────────────────────────────────
+function generateCppDTO(def, typeMap) {
   const guard = `GENERATED_PACKETS_${def.namespace.toUpperCase()}_HPP`;
   const lines = [
     '// AUTO-GENERATED — DO NOT EDIT',
@@ -170,7 +237,7 @@ function generateCpp(def, typeMap, target) {
     '#include <cstdint>',
     '#include <string>',
     '',
-    `namespace packets {`,
+    'namespace packets {',
     '',
   ];
 
@@ -178,31 +245,30 @@ function generateCpp(def, typeMap, target) {
     if (pkt.description) lines.push(`// ${pkt.description}`);
     lines.push(`struct ${pkt.name} {`);
     for (const f of pkt.fields) {
-      const t = mapType(f.type, 'cpp', typeMap);
+      const t = mapType(f.type, typeMap);
       lines.push(`    ${t} ${f.name};`);
     }
     lines.push('};', '');
   }
 
-  // Packet ID enum
-  lines.push('enum class PacketId : int32_t {');
-  for (const pkt of def.packets) {
-    lines.push(`    ${pkt.name} = ${pkt.id},`);
-  }
-  lines.push('};', '');
   lines.push('} // namespace packets', '', `#endif // ${guard}`);
-
   return lines.join('\n');
 }
 
-function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 function main() {
-  const { packetsDir, clientGenerated, serverGenerated } = cfg.paths;
-  const { clientLanguage, serverLanguage, clientNamespace, serverNamespace } = cfg.packetGen;
-  const typeMapC = cfg.typeMap[clientLanguage] || {};
-  const typeMapS = cfg.typeMap[serverLanguage] || {};
+  const { packetsDir, clientGenerated, serverGenerated, protoGenerated } = cfg.paths;
+  const { mode, clientLanguage, serverLanguage, clientNamespace, serverNamespace } = cfg.packetGen;
+  const typeMapProto = cfg.typeMap['proto']  || {};
+  const typeMapC     = cfg.typeMap[clientLanguage] || {};
+  const typeMapS     = cfg.typeMap[serverLanguage] || {};
+
+  if (mode !== 'protobuf' && mode !== 'rest') {
+    console.error(`[gen-packets] ERROR: Invalid mode "${mode}" in framework.ini. Expected: protobuf | rest`);
+    process.exit(1);
+  }
+
+  console.log(`[gen-packets] Mode: ${mode}`);
 
   if (!fs.existsSync(packetsDir)) {
     console.log('[gen-packets] No packets dir:', path.relative(cfg.root, packetsDir));
@@ -217,9 +283,10 @@ function main() {
     return;
   }
 
-  // ── Cross-file duplicate ID check ─────────────────────────────────────────
-  const globalIds = new Map();
+  // ── Validation pass ───────────────────────────────────────────────────────
+  const validate  = mode === 'protobuf' ? validateProtobuf : validateRest;
   const allErrors = [];
+  const globalIds = new Map(); // protobuf cross-file ID check
 
   for (const file of files) {
     const filePath = path.join(packetsDir, file);
@@ -232,15 +299,17 @@ function main() {
       continue;
     }
 
-    const errors = validateDefinition(def, filePath);
+    const errors = validate(def, filePath);
     if (errors.length) { allErrors.push(errors); continue; }
 
-    for (const pkt of def.packets) {
-      if (globalIds.has(pkt.id)) {
-        allErrors.push([{ file: relPath, loc: `Packet "${pkt.name}"`,
-          msg: `Packet ID ${pkt.id} already used in "${globalIds.get(pkt.id)}"` }]);
+    if (mode === 'protobuf') {
+      for (const pkt of def.packets) {
+        if (globalIds.has(pkt.id)) {
+          allErrors.push([{ file: relPath, loc: `Packet "${pkt.name}"`,
+            msg: `Packet ID ${pkt.id} already used in "${globalIds.get(pkt.id)}"` }]);
+        }
+        globalIds.set(pkt.id, `${relPath}::${pkt.name}`);
       }
-      globalIds.set(pkt.id, `${relPath}::${pkt.name}`);
     }
   }
 
@@ -253,41 +322,52 @@ function main() {
     process.exit(1);
   }
 
-  // ── Generate ───────────────────────────────────────────────────────────────
-  const clientPacketsDir = path.join(clientGenerated, 'packets');
-  const serverPacketsDir = path.join(serverGenerated, 'packets');
-  ensureDir(clientPacketsDir);
-  ensureDir(serverPacketsDir);
-
-  for (const file of files) {
-    const filePath = path.join(packetsDir, file);
-    const def      = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    const baseName = def.namespace;
-
-    const generators = [
-      { lang: clientLanguage, dir: clientPacketsDir, ns: clientNamespace, typeMap: typeMapC, target: 'client' },
-      { lang: serverLanguage, dir: serverPacketsDir, ns: serverNamespace, typeMap: typeMapS, target: 'server' },
-    ];
-
-    for (const { lang, dir, ns, typeMap, target } of generators) {
-      let content, ext;
-      if (lang === 'csharp') {
-        content = generateCSharp(def, ns, typeMap, target);
-        ext = '.cs';
-      } else if (lang === 'cpp') {
-        content = generateCpp(def, typeMap, target);
-        ext = '.hpp';
-      } else {
-        console.warn(`[gen-packets] Unsupported language "${lang}" for ${target} — skipping.`);
-        continue;
-      }
-      const outPath = path.join(dir, `${baseName}.packets${ext}`);
-      fs.writeFileSync(outPath, content, 'utf-8');
+  // ── Generation pass ───────────────────────────────────────────────────────
+  if (mode === 'protobuf') {
+    ensureDir(protoGenerated);
+    for (const file of files) {
+      const filePath = path.join(packetsDir, file);
+      const def      = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const outPath  = path.join(protoGenerated, `${def.namespace}.proto`);
+      fs.writeFileSync(outPath, generateProto(def, typeMapProto), 'utf-8');
       console.log(`[gen-packets] OK: ${path.relative(cfg.root, outPath)}`);
     }
-  }
+    console.log(`[gen-packets] Done: ${files.length} .proto file(s) generated.`);
+    console.log(`[gen-packets] Next: run protoc on generated/proto/ to produce client/server code.`);
+  } else {
+    const clientPacketsDir = path.join(clientGenerated, 'packets');
+    const serverPacketsDir = path.join(serverGenerated, 'packets');
+    ensureDir(clientPacketsDir);
+    ensureDir(serverPacketsDir);
 
-  console.log(`[gen-packets] Done: ${files.length} file(s) processed.`);
+    for (const file of files) {
+      const filePath = path.join(packetsDir, file);
+      const def      = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+      const targets = [
+        { lang: clientLanguage, dir: clientPacketsDir, ns: clientNamespace, typeMap: typeMapC },
+        { lang: serverLanguage, dir: serverPacketsDir, ns: serverNamespace, typeMap: typeMapS },
+      ];
+
+      for (const { lang, dir, ns, typeMap } of targets) {
+        let content, ext;
+        if (lang === 'csharp') {
+          content = generateCSharpDTO(def, ns, typeMap);
+          ext = '.cs';
+        } else if (lang === 'cpp') {
+          content = generateCppDTO(def, typeMap);
+          ext = '.hpp';
+        } else {
+          console.warn(`[gen-packets] Unsupported language "${lang}" — skipping.`);
+          continue;
+        }
+        const outPath = path.join(dir, `${def.namespace}.packets${ext}`);
+        fs.writeFileSync(outPath, content, 'utf-8');
+        console.log(`[gen-packets] OK: ${path.relative(cfg.root, outPath)}`);
+      }
+    }
+    console.log(`[gen-packets] Done: ${files.length} file(s) processed.`);
+  }
 }
 
 main();

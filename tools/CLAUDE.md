@@ -19,7 +19,8 @@
 ## Serena
 FIND: config values → `config-loader.js` exports
 FIND: CSV parsing logic → `gen-data.js` `parseCSV()`
-FIND: packet generation → `gen-packets.js` `generateCSharp()` / `generateCpp()`
+FIND: packet gen (protobuf) → `gen-packets.js` `generateProto()`
+FIND: packet gen (rest) → `gen-packets.js` `generateCSharpDTO()` / `generateCppDTO()`
 FIND: DB schema sync → `gen-orm.js` `main()`
 
 ## Adding a new gen tool

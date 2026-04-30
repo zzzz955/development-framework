@@ -70,6 +70,7 @@ function load() {
       clientGenerated: path.join(ROOT, p['client_generated'] || 'client/src/generated/'),
       serverGenerated: path.join(ROOT, p['server_generated'] || 'server/src/generated/'),
       migrationsDir:   path.join(ROOT, p['migrations_dir']   || 'server/db/migrations/'),
+      protoGenerated:  path.join(ROOT, p['proto_generated']  || 'generated/proto/'),
     },
 
     dataGen: {
@@ -78,6 +79,7 @@ function load() {
     },
 
     packetGen: {
+      mode:            ini['packet-gen']?.['mode']             || 'protobuf',
       clientLanguage:  ini['packet-gen']?.['client_language']  || 'csharp',
       serverLanguage:  ini['packet-gen']?.['server_language']  || 'csharp',
       clientNamespace: ini['packet-gen']?.['client_namespace'] || 'Generated.Packets',
@@ -99,6 +101,7 @@ function load() {
     },
 
     typeMap: {
+      proto:  ini['type-map.proto']  || {},
       csharp: ini['type-map.csharp'] || {},
       cpp:    ini['type-map.cpp']    || {},
     },

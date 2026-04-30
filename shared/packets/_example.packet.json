@@ -1,5 +1,7 @@
 {
   "_comment": "EXAMPLE FILE — prefixed with _ so gen tools skip this file. Copy and rename to [domain].packet.json",
+  "_mode_note": "'id' and 'direction' are required in protobuf mode, ignored in rest mode.",
+
   "namespace": "player",
   "packets": [
     {
