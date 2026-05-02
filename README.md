@@ -1,7 +1,7 @@
-# 게임 개발 프레임워크
+# 개발 프레임워크
 
-게임 프로젝트에 반복적으로 사용되는 자동화 파이프라인을 제공하는 기술 중립적 프레임워크입니다.  
-클라이언트/서버 스택을 직접 선택하면서, **게임 메타 데이터 · 패킷 프로토콜 · DB 스키마** 동기화를 자동화합니다.
+프로젝트에 반복적으로 사용되는 자동화 파이프라인을 제공하는 기술 중립적 프레임워크입니다.  
+클라이언트/서버 스택을 직접 선택하면서, **메타 데이터 · 패킷 프로토콜 · DB 스키마** 동기화를 자동화합니다.
 
 ---
 
@@ -9,8 +9,8 @@
 
 | 구분 | 지원 대상 |
 |------|-----------|
-| 클라이언트 | Unity (C#), 기타 |
-| 서버 | ASP.NET (C#), C++ Boost.Asio, 기타 |
+| 클라이언트 | Unity (C#), UnrealEngine (C++), TypeScript (Javascript), 기타 |
+| 서버 | ASP.NET (C#), C++ Boost.Asio, Node.JS (Javascript), 기타 |
 | 데이터베이스 | PostgreSQL, MySQL, SQLite |
 | 필수 도구 | Node.js 18+ |
 
@@ -38,7 +38,7 @@ sh tools/gen-all.sh    # Unix / Mac
 ```
 game-development-framework/
 ├── shared/
-│   ├── datas/         게임 메타 데이터 원본 (CSV) → 클라이언트/서버 JSON 생성
+│   ├── datas/         메타 데이터 원본 (CSV) → 클라이언트/서버 JSON 생성
 │   ├── packets/       패킷 프로토콜 정의 (JSON IDL) → 클라이언트/서버 코드 생성
 │   └── types/         공통 Enum · 상수 정의
 ├── server/
