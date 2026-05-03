@@ -1,6 +1,6 @@
-# 개발 프레임워크
+# 개발 템플릿
 
-프로젝트에 반복적으로 사용되는 자동화 파이프라인을 제공하는 기술 중립적 프레임워크입니다.  
+프로젝트에 반복적으로 사용되는 자동화 파이프라인을 제공하는 기술 중립적 템플릿입니다.  
 클라이언트/서버 스택을 직접 선택하면서, **메타 데이터 · 패킷 프로토콜 · DB 스키마** 동기화를 자동화합니다.
 
 ---
@@ -36,7 +36,7 @@ sh tools/gen-all.sh    # Unix / Mac
 ## 디렉터리 구조
 
 ```
-game-development-framework/
+game-development-template/
 ├── shared/
 │   ├── datas/         메타 데이터 원본 (CSV) → 클라이언트/서버 JSON 생성
 │   ├── packets/       패킷 프로토콜 정의 (JSON IDL) → 클라이언트/서버 코드 생성
@@ -45,7 +45,7 @@ game-development-framework/
 │   └── db/            DB 런타임 스키마 (schema.json) → DB CREATE/ALTER TABLE 생성
 ├── client/            클라이언트 앱 (스택은 사용자 결정)
 ├── tools/             자동화 스크립트 (gen-data, gen-packets, gen-orm)
-├── framework.ini      비밀이 아닌 설정값 (경로, 언어, 타입 매핑 등)
+├── template.ini      비밀이 아닌 설정값 (경로, 언어, 타입 매핑 등)
 └── .env               비밀 설정값 (DB 패스워드, 토큰 등) — 절대 커밋 금지
 ```
 
@@ -71,7 +71,7 @@ GITHUB_DEFAULT_PROJECT={project-name}
 GITHUB_DEFAULT_ASSIGNEE={github-username}
 ```
 
-### `framework.ini` — 일반 설정 (git 관리)
+### `template.ini` — 일반 설정 (git 관리)
 
 ```ini
 [packet-gen]
@@ -214,6 +214,6 @@ PK,NN,NN,,,,NN
 |------|------|
 | `*/generated/` 직접 수정 금지 | 소스 파일 수정 후 gen 재실행 |
 | `.env` 커밋 금지 | `.env.example`을 참고해 로컬에서만 관리 |
-| `framework.ini`에 비밀 저장 금지 | 비밀값은 반드시 `.env`에 |
+| `template.ini`에 비밀 저장 금지 | 비밀값은 반드시 `.env`에 |
 | 새 디렉터리 추가 시 | `CLAUDE.md` 생성 + 상위 `## Nav` 업데이트 |
-| 설정 우선순위 | `.env` > `framework.ini` > 하드코딩 기본값 |
+| 설정 우선순위 | `.env` > `template.ini` > 하드코딩 기본값 |
