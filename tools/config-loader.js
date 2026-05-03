@@ -42,11 +42,11 @@ function parseEnv(content) {
 
 // ── Load config ───────────────────────────────────────────────────────────────
 function load() {
-  const iniPath = path.join(ROOT, 'framework.ini');
+  const iniPath = path.join(ROOT, 'template.ini');
   const envPath = path.join(ROOT, '.env');
 
   if (!fs.existsSync(iniPath)) {
-    console.error('[config] ERROR: framework.ini not found at', iniPath);
+    console.error('[config] ERROR: template.ini not found at', iniPath);
     process.exit(1);
   }
 

@@ -1,4 +1,4 @@
-# Game Development Framework
+# Game Development Template
 
 ## Nav
 | path | role |
@@ -19,9 +19,9 @@ CMD: `tools/gen-all.bat` | `npm run gen:all`
 ## Rules
 - NEVER edit `*/generated/*` — edit source, re-run gen
 - NEVER commit `.env` — use `.env.example`
-- NEVER store secrets in `framework.ini` — secrets go in `.env`
+- NEVER store secrets in `template.ini` — secrets go in `.env`
 - NEW_DIR: create `CLAUDE.md` for it + update parent `## Nav` section
-- CONFIG priority: `.env` > `framework.ini` > hardcoded defaults
+- CONFIG priority: `.env` > `template.ini` > hardcoded defaults
 - `_` prefix files/dirs are skipped by all gen tools (examples, drafts)
 
 ## Formats

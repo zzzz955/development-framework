@@ -264,7 +264,7 @@ function main() {
   const typeMapS     = cfg.typeMap[serverLanguage] || {};
 
   if (mode !== 'protobuf' && mode !== 'rest') {
-    console.error(`[gen-packets] ERROR: Invalid mode "${mode}" in framework.ini. Expected: protobuf | rest`);
+    console.error(`[gen-packets] ERROR: Invalid mode "${mode}" in template.ini. Expected: protobuf | rest`);
     process.exit(1);
   }
 

@@ -5,7 +5,7 @@ FILE: `[domain].packet.json`  e.g. `player.packet.json`
 CMD:  `npm run gen:packets` → output depends on mode (see below)
 SKIP: files with `_` prefix
 
-## Mode (`framework.ini` → `[packet-gen] mode`)
+## Mode (`template.ini` → `[packet-gen] mode`)
 
 ### protobuf (default)
 ```

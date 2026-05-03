@@ -3,7 +3,7 @@
 ## Nav
 | file | role |
 |------|------|
-| `config-loader.js` | Loads `framework.ini` + `.env`, exports merged config |
+| `config-loader.js` | Loads `template.ini` + `.env`, exports merged config |
 | `gen-data.js` | `shared/datas/**/*.csv` → `*/generated/data/**/*.json` |
 | `gen-packets.js` | `shared/packets/*.packet.json` → `*/generated/packets/*` |
 | `gen-orm.js` | `server/db/schema.json` → DB CREATE/ALTER TABLE + migration SQL |
@@ -14,7 +14,7 @@
 - `_` prefix files/dirs are skipped by all gen tools
 - Errors report as: `[tool] ERROR: <file>\n  <location>: <message>`
 - On any error → print all errors, then `process.exit(1)`
-- gen-orm default: `dry_run=true` (SQL file only) — set `false` in `framework.ini` to execute
+- gen-orm default: `dry_run=true` (SQL file only) — set `false` in `template.ini` to execute
 
 ## Serena
 FIND: config values → `config-loader.js` exports

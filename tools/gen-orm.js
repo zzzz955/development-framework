@@ -394,7 +394,7 @@ async function main() {
 
   if (dryRun) {
     console.log('\n[gen-orm] Dry-run mode — SQL generated but NOT executed.');
-    console.log('  Set orm-gen.dry_run = false in framework.ini to execute on DB.');
+    console.log('  Set orm-gen.dry_run = false in template.ini to execute on DB.');
   } else {
     console.log(`[gen-orm] Done: ${schema.tables.length} table(s) synced.`);
   }

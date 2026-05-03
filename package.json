@@ -1,8 +1,8 @@
 {
-  "name": "game-development-framework",
+  "name": "game-development-template",
   "version": "1.0.0",
   "private": true,
-  "description": "Tech-agnostic game development framework with automated data/packet/ORM sync",
+  "description": "Tech-agnostic game development template with automated data/packet/ORM sync",
   "engines": {
     "node": ">=18.0.0"
   },
